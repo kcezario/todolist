@@ -1,0 +1,73 @@
+@hostname = localhost:8000/api
+
+### Login para obter um Token
+# @name superAdminLogin
+POST http://{{hostname}}/auth/login/
+Content-Type: application/json
+
+{
+    "username": "admin1",
+    "password": "admin1"
+}
+
+### 📌 2️⃣ Criar um usuário com permissão de superAdminLogin
+@adminToken = {{superAdminLogin.response.body.token}}
+POST http://{{hostname}}/auth/create-user/
+Content-Type: application/json
+Authorization: Token {{adminToken}}
+
+{
+    "username": "admin2",
+    "password": "admin2",
+    "groups": ["Admin"]
+}
+
+### Logout
+POST http://{{hostname}}/auth/logout/
+Authorization: Token {{adminToken}}
+
+### Outros logins
+# @name login
+POST http://{{hostname}}/auth/login/
+Content-Type: application/json
+
+{
+    "username": "admin1",
+    "password": "admin1"
+}
+
+### Get all tasks (for Manager or Admin)
+@token = {{login.response.body.token}}
+GET http://{{hostname}}/tasks/
+Authorization: Token {{token}}
+
+### Get tasks for the logged-in user
+GET http://{{hostname}}/tasks/
+Authorization: Token {{token}}
+
+### Create a new task
+POST http://{{hostname}}/tasks/
+Content-Type: application/json
+Authorization: Token {{token}}
+
+{
+    "title": "New Task para o 30",
+    "description": "Description of the new task",
+    "due_date": "2025-02-06",
+    "owner": 30
+}
+
+### Update a task (replace {id} with actual task ID)
+PUT http://{{hostname}}/tasks/{id}/
+Content-Type: application/json
+Authorization: Token {{token}}
+
+{
+    "title": "Updated Task",
+    "description": "Updated description",
+    "due_date": "2025-02-06"
+}
+
+### Delete a task (replace {id} with actual task ID)
+DELETE http://{{hostname}}/tasks/{id}/
+Authorization: Token {{token}}
