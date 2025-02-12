@@ -1,6 +1,8 @@
 from rest_framework import viewsets
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.filters import SearchFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from ..models import Task
 from ..serializers import TaskSerializer, TaskReadSerializer
 from ..filters import TaskFilter
@@ -14,6 +16,9 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
     permission_classes = [IsAuthenticated]
     filterset_class = TaskFilter
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    search_fields = ['title', 'description']
+    filterset_fields = ['status', 'due_date', 'owner']
 
     def get_serializer_class(self):
         """Use different serializers for different actions"""
@@ -23,13 +28,17 @@ class TaskViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Return different task lists based on user permissions"""
-        if is_at_least(self.request.user, "Manager"):
-            return Task.objects.all()
-        return Task.objects.filter(owner=self.request.user)
+        queryset = Task.objects.all() if is_at_least(self.request.user, "Manager") else Task.objects.filter(owner=self.request.user)
+        return queryset
 
     @extend_schema(
         summary="List all tasks",
-        parameters=[],
+        parameters=[
+            OpenApiParameter(name="search", description="Search by title or description", required=False, type=str),
+            OpenApiParameter(name="status", description="Filter by status", required=False, type=str),
+            OpenApiParameter(name="due_date", description="Filter by due date", required=False, type=str),
+            OpenApiParameter(name="owner", description="Filter by owner ID", required=False, type=int),
+        ],
         responses={200: TaskReadSerializer(many=True)}
     )
     def list(self, request, *args, **kwargs):

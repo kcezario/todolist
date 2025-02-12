@@ -2,6 +2,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 class RegisterSerializer(serializers.ModelSerializer):
     """Serializer for user registration"""
@@ -22,23 +23,13 @@ class RegisterSerializer(serializers.ModelSerializer):
     def get_token(self, obj):
         return obj["token"]
 
-class UserLoginSerializer(serializers.Serializer):
-    """Serializer for user login authentication"""
+class TodoListTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Custom JWT Serializer for TodoList"""
 
-    username = serializers.CharField()
-    password = serializers.CharField(write_only=True)
-    token = serializers.SerializerMethodField()
-
-    def validate(self, data):
-        """Validate user credentials and return token"""
-        user = authenticate(username=data["username"], password=data["password"])
-        if not user:
-            raise serializers.ValidationError("Invalid credentials")
-        self.context["user"] = user
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['user'] = {
+            "id": self.user.id,
+            "username": self.user.username
+        }
         return data
-
-    def create(self, validated_data):
-        """Return authentication token for the user"""
-        user = self.context["user"]
-        token, _ = Token.objects.get_or_create(user=user)
-        return {"token": token.key}
